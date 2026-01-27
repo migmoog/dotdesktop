@@ -1,0 +1,13 @@
+[project]
+name = "dotdesktop"
+version = "0.0.1"
+dependencies = [
+  "desktop_parser"
+]
+
+[project.scripts]
+cli-name = "dotdesktop:main"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
