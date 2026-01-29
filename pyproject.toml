@@ -6,7 +6,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cli-name = "dotdesktop:main"
+dotdesktop = "dotdesktop:main"
 
 [build-system]
 requires = ["setuptools"]

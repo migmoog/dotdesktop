@@ -1,1 +1,1 @@
-from dotdesktop import *
+from .dotdesktop import main
