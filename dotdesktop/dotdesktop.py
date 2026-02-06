@@ -3,12 +3,12 @@
 ## NOTE: this works, but can use more utils and ways to map
 import sys
 from os import getenv, chmod
-from os.path import abspath, join
+from os.path import abspath, join, exists
 from desktop_parser import DesktopFile
 from pathlib import Path
 import argparse
 
-def make_entry(file_name, exe_path, icon=None, categories="", name=""):
+def make_entry(file_name, exe_path, **kwargs):
     home=getenv("HOME")
     if home is None:
         raise NotADirectoryError()
@@ -20,27 +20,15 @@ def make_entry(file_name, exe_path, icon=None, categories="", name=""):
     )
 
     entry_file.data["Exec"] = exe_path
-    if categories:
-        entry_file.data["Categories"] = categories
-    if icon:
-        entry_file.data["Icon"] = icon
-    entry_file.data["Name"] = name if name else file_name
+    if kwargs["categories"]:
+        entry_file.data["Categories"] = kwargs["categories"]
+    if kwargs["icon"]:
+        entry_file.data["Icon"] = kwargs["icon"]
+    entry_file.data["Name"] = kwargs.get("name", file_name)
     entry_file.data["Type"] = "Application"
     entry_file.data["Terminal"] = "false"
 
     return entry_file
-
-
-def interactive(file_name = None):
-    exe_path=Path( input("Path to exectuable: ") )
-    if not exe_path.exists():
-        raise FileNotFoundError()
-    if file_name is None:
-        file_name=exe_path.stem
-    icon_path=Path(input("Path to icon: "))
-
-    categories=input("Categories: " )
-    return make_entry(file_name, exe_path, icon_path, categories)
 
 
 parser = argparse.ArgumentParser(
@@ -59,7 +47,7 @@ parser.add_argument(
 )
 parser.add_argument('-i', '--icon', help='Path to image file for "Icon"')
 parser.add_argument(
-    '--filename',
+    '-f', '--filename',
     help="Name of the .desktop file. Will use name of executable if not provided"
 )
 parser.add_argument(
@@ -67,7 +55,6 @@ parser.add_argument(
     '--categories',
     help="List of categories for the \"Categories\" section"
 )
-parser.add_argument('--iv', action='store_true', help='do interactive filling')
 parser.add_argument('-dbg', action='store_true', help=argparse.SUPPRESS)
 
 def main():
@@ -76,24 +63,33 @@ def main():
         parser.print_help()
     else:
         args = parser.parse_args(sys.argv[1:])
-        filename = args.filename if args.filename else Path( args.executable ).stem
-        if args.iv:
-            entry_file = interactive(filename)
-        else:
-            categories=""
-            if args.categories:
-                categories=';'.join(args.categories)
+        filename = args.filename \
+            if args.filename else \
+            Path( args.executable ).stem
 
-            icon=None
-            if args.icon:
-                icon=abspath(args.icon)
+        categories=""
+        if args.categories:
+            categories=';'.join(args.categories)
 
-            entry_file = make_entry(
-                filename,
-                abspath(args.executable),
-                icon=icon,
-                categories=categories
-            )
+        icon=None
+        if args.icon:
+            icon=abspath(args.icon)
+            if not exists(icon):
+                print(f"No file exists at {icon}")
+                return 
+
+        exe_path=abspath(args.executable)
+        if not exists(exe_path):
+            print(f"No executable at {exe_path}")
+            return
+
+        entry_file = make_entry(
+            filename,
+            exe_path,
+            icon=icon,
+            categories=categories,
+            name=args.name if args.name else None
+        )
         entry_file.dump(headings="[Desktop Entry]\n")
         chmod(str(entry_file.file_path), 0o775)
 
